@@ -1,13 +1,15 @@
 import requests
+import smtplib
 import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
-# Configurações (vem das secrets do GitHub)
+# Configurações
 TODOIST_TOKEN = os.environ.get('TODOIST_TOKEN')
-OUTLOOK_CLIENT_ID = os.environ.get('OUTLOOK_CLIENT_ID')
-OUTLOOK_CLIENT_SECRET = os.environ.get('OUTLOOK_CLIENT_SECRET')
-OUTLOOK_REFRESH_TOKEN = os.environ.get('OUTLOOK_REFRESH_TOKEN')
-YOUR_EMAIL = os.environ.get('YOUR_EMAIL', 'joaopaulo.homem@outlook.com')
+GMAIL_PASSWORD = os.environ.get('GMAIL_PASSWORD')
+GMAIL_USER = 'jptipworld@gmail.com'
+RECIPIENTS = ['joaopaulo.homem@outlook.com', 'joaohomem@falconi.com']
 
 def get_todoist_tasks():
     """Busca tarefas do Todoist"""
@@ -83,21 +85,18 @@ def create_html_email(overdue, today_tasks, upcoming):
             </div>
 """
     
-    # Tarefas vencidas
     if overdue:
         html += f'<div class="section"><div class="section-title">🔴 Tarefas Vencidas ({len(overdue)})</div>'
         for task in overdue:
             html += f'<div class="task task-overdue"><div class="task-title">{task["content"]}</div><div class="task-date">📅 Venceu em: {task["due_date"]}</div></div>'
         html += '</div>'
     
-    # Tarefas de hoje
     if today_tasks:
         html += f'<div class="section"><div class="section-title">🟡 Para Hoje ({len(today_tasks)})</div>'
         for task in today_tasks:
             html += f'<div class="task task-today"><div class="task-title">{task["content"]}</div><div class="task-date">📅 Vence hoje: {task["due_date"]}</div></div>'
         html += '</div>'
     
-    # Próximas tarefas
     if upcoming:
         html += f'<div class="section"><div class="section-title">🟢 Próximos 3 Dias ({len(upcoming)})</div>'
         for task in upcoming:
@@ -107,40 +106,28 @@ def create_html_email(overdue, today_tasks, upcoming):
     if not overdue and not today_tasks and not upcoming:
         html += '<div style="text-align:center;padding:30px;color:#95a5a6;"><h2>🎉 Parabéns!</h2><p>Você não tem tarefas urgentes.</p></div>'
     
-    html += '</div><div class="footer"><p>💙 Email gerado automaticamente</p></div></div></body></html>'
+    html += '</div><div class="footer"><p>💙 Email gerado automaticamente via GitHub Actions</p></div></div></body></html>'
     return html
 
-def send_email_outlook(html_body):
-    """Envia email via Microsoft Graph API"""
-    # Renovar token
-    token_url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
-    token_data = {
-        'client_id': OUTLOOK_CLIENT_ID,
-        'client_secret': OUTLOOK_CLIENT_SECRET,
-        'refresh_token': OUTLOOK_REFRESH_TOKEN,
-        'grant_type': 'refresh_token'
-    }
-    token_response = requests.post(token_url, data=token_data)
-    access_token = token_response.json()['access_token']
+def send_email_gmail(html_body):
+    """Envia email via Gmail SMTP para múltiplos destinatários"""
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = '📋 Suas Tarefas do Dia - Todoist'
+    msg['From'] = GMAIL_USER
+    msg['To'] = ', '.join(RECIPIENTS)
     
-    # Enviar email
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    email_data = {
-        'message': {
-            'subject': '📋 Suas Tarefas do Dia - Todoist',
-            'body': {'contentType': 'HTML', 'content': html_body},
-            'toRecipients': [{'emailAddress': {'address': YOUR_EMAIL}}]
-        }
-    }
-    response = requests.post(
-        'https://graph.microsoft.com/v1.0/me/sendMail',
-        headers=headers,
-        json=email_data
-    )
-    return response.status_code == 202
+    html_part = MIMEText(html_body, 'html')
+    msg.attach(html_part)
+    
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        server.sendmail(GMAIL_USER, RECIPIENTS, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Erro ao enviar email: {e}")
+        return False
 
 if __name__ == '__main__':
     print("🔍 Buscando tarefas do Todoist...")
@@ -156,8 +143,8 @@ if __name__ == '__main__':
     print("📧 Criando email HTML...")
     html = create_html_email(overdue, today_tasks, upcoming)
     
-    print("📤 Enviando email...")
-    if send_email_outlook(html):
+    print(f"📤 Enviando email para {len(RECIPIENTS)} destinatários...")
+    if send_email_gmail(html):
         print("✅ Email enviado com sucesso!")
     else:
         print("❌ Erro ao enviar email")
