@@ -24,8 +24,5 @@ jobs:
       - name: Send tasks email
         env:
           TODOIST_TOKEN: ${{ secrets.TODOIST_TOKEN }}
-          OUTLOOK_CLIENT_ID: ${{ secrets.OUTLOOK_CLIENT_ID }}
-          OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
-          OUTLOOK_REFRESH_TOKEN: ${{ secrets.OUTLOOK_REFRESH_TOKEN }}
-          YOUR_EMAIL: joaopaulo.homem@outlook.com
+          GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
         run: python send_tasks.py
