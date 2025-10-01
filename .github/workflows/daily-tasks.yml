@@ -1,0 +1,31 @@
+name: Daily Tasks Email
+
+on:
+  schedule:
+    - cron: '0 11 * * *'  # 8h BRT (11h UTC)
+  workflow_dispatch:  # Permite rodar manualmente
+
+jobs:
+  send-tasks:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: pip install requests
+      
+      - name: Send tasks email
+        env:
+          TODOIST_TOKEN: ${{ secrets.TODOIST_TOKEN }}
+          OUTLOOK_CLIENT_ID: ${{ secrets.OUTLOOK_CLIENT_ID }}
+          OUTLOOK_CLIENT_SECRET: ${{ secrets.OUTLOOK_CLIENT_SECRET }}
+          OUTLOOK_REFRESH_TOKEN: ${{ secrets.OUTLOOK_REFRESH_TOKEN }}
+          YOUR_EMAIL: joaopaulo.homem@outlook.com
+        run: python send_tasks.py
