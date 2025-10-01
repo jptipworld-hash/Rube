@@ -62,12 +62,15 @@ def create_html_email(overdue, today_tasks, upcoming):
         .stat-label {{ font-size: 12px; text-transform: uppercase; }}
         .section {{ margin-bottom: 30px; }}
         .section-title {{ font-size: 20px; font-weight: 600; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }}
-        .task {{ background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin-bottom: 10px; border-radius: 8px; }}
+        .task {{ background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin-bottom: 10px; border-radius: 8px; transition: all 0.3s ease; }}
+        .task:hover {{ transform: translateX(5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
         .task-overdue {{ border-left-color: #e74c3c; background: #fff5f5; }}
         .task-today {{ border-left-color: #f39c12; background: #fffbf0; }}
         .task-upcoming {{ border-left-color: #27ae60; background: #f0fff4; }}
-        .task-title {{ font-size: 16px; font-weight: 500; color: #2c3e50; }}
-        .task-date {{ font-size: 13px; color: #7f8c8d; margin-top: 5px; }}
+        .task-title {{ font-size: 16px; font-weight: 500; color: #2c3e50; margin-bottom: 8px; }}
+        .task-date {{ font-size: 13px; color: #7f8c8d; margin-bottom: 8px; }}
+        .task-link {{ display: inline-block; padding: 6px 12px; background: #667eea; color: white !important; text-decoration: none; border-radius: 5px; font-size: 12px; font-weight: 500; }}
+        .task-link:hover {{ background: #5568d3; }}
         .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #7f8c8d; font-size: 13px; }}
     </style>
 </head>
@@ -88,19 +91,31 @@ def create_html_email(overdue, today_tasks, upcoming):
     if overdue:
         html += f'<div class="section"><div class="section-title">🔴 Tarefas Vencidas ({len(overdue)})</div>'
         for task in overdue:
-            html += f'<div class="task task-overdue"><div class="task-title">{task["content"]}</div><div class="task-date">📅 Venceu em: {task["due_date"]}</div></div>'
+            html += f'''<div class="task task-overdue">
+                <div class="task-title">{task["content"]}</div>
+                <div class="task-date">📅 Venceu em: {task["due_date"]}</div>
+                <a href="{task["url"]}" class="task-link" target="_blank">Abrir no Todoist →</a>
+            </div>'''
         html += '</div>'
     
     if today_tasks:
         html += f'<div class="section"><div class="section-title">🟡 Para Hoje ({len(today_tasks)})</div>'
         for task in today_tasks:
-            html += f'<div class="task task-today"><div class="task-title">{task["content"]}</div><div class="task-date">📅 Vence hoje: {task["due_date"]}</div></div>'
+            html += f'''<div class="task task-today">
+                <div class="task-title">{task["content"]}</div>
+                <div class="task-date">📅 Vence hoje: {task["due_date"]}</div>
+                <a href="{task["url"]}" class="task-link" target="_blank">Abrir no Todoist →</a>
+            </div>'''
         html += '</div>'
     
     if upcoming:
         html += f'<div class="section"><div class="section-title">🟢 Próximos 3 Dias ({len(upcoming)})</div>'
         for task in upcoming:
-            html += f'<div class="task task-upcoming"><div class="task-title">{task["content"]}</div><div class="task-date">📅 Vence em: {task["due_date"]}</div></div>'
+            html += f'''<div class="task task-upcoming">
+                <div class="task-title">{task["content"]}</div>
+                <div class="task-date">📅 Vence em: {task["due_date"]}</div>
+                <a href="{task["url"]}" class="task-link" target="_blank">Abrir no Todoist →</a>
+            </div>'''
         html += '</div>'
     
     if not overdue and not today_tasks and not upcoming:
