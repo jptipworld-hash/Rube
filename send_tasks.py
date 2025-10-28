@@ -48,8 +48,10 @@ def categorize_tasks(tasks):
     }
 
 def create_html_email(categorized_tasks):
-    """Cria o HTML do email"""
+    """Cria o HTML do email com layout melhorado"""
     print("🎨 Criando email HTML...")
+    
+    today = datetime.now().date()
     
     html = """
     <!DOCTYPE html>
@@ -57,61 +59,207 @@ def create_html_email(categorized_tasks):
     <head>
         <meta charset='UTF-8'>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f4f4f4; }
-            .container { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            h1 { color: #1a73e8; border-bottom: 3px solid #1a73e8; padding-bottom: 10px; }
-            h2 { color: #1a73e8; margin-top: 30px; font-size: 1.2em; }
-            .task-item { background: #f8f9fa; padding: 15px; margin: 10px 0; border-left: 4px solid #1a73e8; border-radius: 5px; }
-            .task-item strong { color: #1a73e8; }
-            .overdue { border-left-color: #d32f2f; }
-            .today { border-left-color: #f57c00; }
-            .upcoming { border-left-color: #1976d2; }
-            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center; color: #666; font-size: 0.9em; }
+            * { margin: 0; padding: 0; }
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: #f5f5f5;
+                padding: 20px 0;
+            }
+            .container { 
+                max-width: 700px; 
+                margin: 0 auto; 
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            }
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 40px 30px;
+                text-align: center;
+                color: white;
+            }
+            .header h1 {
+                font-size: 28px;
+                font-weight: 600;
+                margin-bottom: 5px;
+            }
+            .header p {
+                font-size: 14px;
+                opacity: 0.9;
+            }
+            .stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 15px;
+                padding: 30px;
+                background: #f9f9f9;
+                border-bottom: 1px solid #e5e5e5;
+            }
+            .stat-box {
+                text-align: center;
+                padding: 15px;
+                background: white;
+                border-radius: 8px;
+                border-left: 4px solid #667eea;
+            }
+            .stat-box.overdue { border-left-color: #e74c3c; }
+            .stat-box.today { border-left-color: #f39c12; }
+            .stat-box.upcoming { border-left-color: #27ae60; }
+            .stat-number {
+                font-size: 24px;
+                font-weight: 700;
+                margin-bottom: 5px;
+            }
+            .stat-overdue { color: #e74c3c; }
+            .stat-today { color: #f39c12; }
+            .stat-upcoming { color: #27ae60; }
+            .stat-label {
+                font-size: 12px;
+                color: #666;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 500;
+            }
+            .content {
+                padding: 30px;
+            }
+            .section {
+                margin-bottom: 30px;
+            }
+            .section-title {
+                font-size: 16px;
+                font-weight: 600;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #f0f0f0;
+            }
+            .section-title.overdue { color: #e74c3c; }
+            .section-title.today { color: #f39c12; }
+            .section-title.upcoming { color: #27ae60; }
+            .task-item {
+                padding: 15px;
+                margin-bottom: 10px;
+                background: #f9f9f9;
+                border-left: 4px solid #667eea;
+                border-radius: 6px;
+                transition: all 0.2s;
+            }
+            .task-item.overdue { border-left-color: #e74c3c; background: #fff5f5; }
+            .task-item.today { border-left-color: #f39c12; background: #fffaf0; }
+            .task-item.upcoming { border-left-color: #27ae60; background: #f5fdf9; }
+            .task-content {
+                font-size: 14px;
+                color: #333;
+                font-weight: 500;
+                margin-bottom: 8px;
+            }
+            .task-date {
+                font-size: 12px;
+                color: #999;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .footer {
+                background: #f9f9f9;
+                padding: 20px 30px;
+                text-align: center;
+                border-top: 1px solid #e5e5e5;
+                font-size: 12px;
+                color: #999;
+            }
         </style>
     </head>
     <body>
         <div class='container'>
-            <h1>📅 Suas Tarefas do Todoist - """ + datetime.now().strftime("%d/%m/%Y") + """</h1>
+            <div class='header'>
+                <h1>📋 Suas Tarefas</h1>
+                <p>Todoist • """ + today.strftime("%d de %B de %Y") + """</p>
+            </div>
+            
+            <div class='stats'>
+    """
+    
+    # Stats boxes
+    html += f"""
+                <div class='stat-box overdue'>
+                    <div class='stat-number stat-overdue'>{len(categorized_tasks['overdue'])}</div>
+                    <div class='stat-label'>Vencidas</div>
+                </div>
+                <div class='stat-box today'>
+                    <div class='stat-number stat-today'>{len(categorized_tasks['today'])}</div>
+                    <div class='stat-label'>Hoje</div>
+                </div>
+                <div class='stat-box upcoming'>
+                    <div class='stat-number stat-upcoming'>{len(categorized_tasks['upcoming'])}</div>
+                    <div class='stat-label'>Próximos 3 Dias</div>
+                </div>
+            </div>
+            
+            <div class='content'>
     """
     
     # Tarefas Vencidas
     if categorized_tasks['overdue']:
-        html += "<h2>⚠️ Tarefas Vencidas (" + str(len(categorized_tasks['overdue'])) + ")</h2>"
+        html += f"""
+                <div class='section'>
+                    <div class='section-title overdue'>❌ Tarefas Vencidas ({len(categorized_tasks['overdue'])})</div>
+        """
         for task in categorized_tasks['overdue']:
             due_date = task['due']['date'] if task.get('due') else 'Sem data'
             html += f"""
-            <div class='task-item overdue'>
-                <strong>❌ {task['content']}</strong><br>
-                <small>Venceu em: {due_date}</small>
-            </div>
+                    <div class='task-item overdue'>
+                        <div class='task-content'>{task['content']}</div>
+                        <div class='task-date'>📅 Vencimento: {due_date}</div>
+                    </div>
             """
+        html += """
+                </div>
+        """
     
     # Tarefas para Hoje
     if categorized_tasks['today']:
-        html += "<h2>🎯 Tarefas para Hoje (" + str(len(categorized_tasks['today'])) + ")</h2>"
+        html += f"""
+                <div class='section'>
+                    <div class='section-title today'>🎯 Tarefas para Hoje ({len(categorized_tasks['today'])})</div>
+        """
         for task in categorized_tasks['today']:
             html += f"""
-            <div class='task-item today'>
-                <strong>📌 {task['content']}</strong>
-            </div>
+                    <div class='task-item today'>
+                        <div class='task-content'>{task['content']}</div>
+                    </div>
             """
+        html += """
+                </div>
+        """
     
     # Próximas Tarefas
     if categorized_tasks['upcoming']:
-        html += "<h2>📆 Próximos 3 Dias (" + str(len(categorized_tasks['upcoming'])) + ")</h2>"
+        html += f"""
+                <div class='section'>
+                    <div class='section-title upcoming'>📆 Próximos 3 Dias ({len(categorized_tasks['upcoming'])})</div>
+        """
         for task in categorized_tasks['upcoming']:
             due_date = task['due']['date'] if task.get('due') else 'Sem data'
             html += f"""
-            <div class='task-item upcoming'>
-                <strong>✓ {task['content']}</strong><br>
-                <small>Vencimento: {due_date}</small>
-            </div>
+                    <div class='task-item upcoming'>
+                        <div class='task-content'>{task['content']}</div>
+                        <div class='task-date'>📅 Vencimento: {due_date}</div>
+                    </div>
             """
+        html += """
+                </div>
+        """
     
     html += """
+            </div>
+            
             <div class='footer'>
-                <p><strong>📧 Email automático via GitHub Actions</strong></p>
-                <p>🤖 Powered by Rube</p>
+                <p>📧 Email automático via GitHub Actions • Powered by Rube 🤖</p>
             </div>
         </div>
     </body>
@@ -167,7 +315,7 @@ def main():
         html = create_html_email(categorized)
         
         # Enviar email
-        subject = f"📅 Suas Tarefas do Todoist - {datetime.now().strftime('%d/%m/%Y')}"
+        subject = f"📋 Suas Tarefas - {datetime.now().strftime('%d/%m/%Y')}"
         success = send_email_gmail(subject, html)
         
         if success:
