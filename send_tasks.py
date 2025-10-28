@@ -8,256 +8,179 @@ from datetime import datetime, timedelta
 # Configurações - PROTON MAIL
 todoist_token = os.environ.get('TODOIST_TOKEN')
 proton_email = 'jp@jphub.com.br'
-proton_token = os.environ.get('PROTON_MAIL_TOKEN')  # 3PDSKEP7W14Z45AQ
+proton_token = os.environ.get('PROTON_MAIL_TOKEN')
 smtp_host = 'smtp.protonmail.ch'
 smtp_port = 587
 recipients = ['jp@jphub.com.br', 'joaohomem@falconi.com']
 
 def get_todoist_tasks():
     """Busca tarefas do Todoist"""
+    print("🔍 Buscando tarefas do Todoist...")
     headers = {'Authorization': f'Bearer {todoist_token}'}
     response = requests.get('https://api.todoist.com/rest/v2/tasks', headers=headers)
     return response.json()
 
 def categorize_tasks(tasks):
     """Categoriza tarefas por data"""
+    print("📋 Categorizando tarefas...")
     today = datetime.now().date()
-    overdue, today_tasks, upcoming = [], [], []
-
+    overdue = []
+    today_tasks = []
+    upcoming = []
+    
     for task in tasks:
         if not task.get('due'):
             continue
-        due_date = datetime.strptime(task['due']['date'], '%Y-%m-%d').date()
-
-        task_info = {
-            'content': task['content'],
-            'due_date': due_date.strftime('%d/%m/%Y'),
-            'url': task['url'],
-            'priority': task.get('priority', 1)
-        }
-
+        
+        due_date = datetime.fromisoformat(task['due']['date']).date()
+        
         if due_date < today:
-            overdue.append(task_info)
+            overdue.append(task)
         elif due_date == today:
-            today_tasks.append(task_info)
+            today_tasks.append(task)
         elif due_date <= today + timedelta(days=3):
-            upcoming.append(task_info)
+            upcoming.append(task)
+    
+    return {
+        'overdue': overdue,
+        'today': today_tasks,
+        'upcoming': upcoming
+    }
 
-    return overdue, today_tasks, upcoming
-
-def create_html_email(overdue, today_tasks, upcoming):
+def create_html_email(categorized_tasks):
     """Cria o HTML do email"""
-    html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {{
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 20px;
-        }}
-        .container {{
-            max-width: 700px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }}
-        .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }}
-        .header h1 {{
-            margin: 0;
-            font-size: 32px;
-        }}
-        .content {{
-            padding: 30px;
-        }}
-        .stats {{
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-        }}
-        .stat {{
-            text-align: center;
-            color: white;
-        }}
-        .stat-number {{
-            font-size: 32px;
-            font-weight: 700;
-            display: block;
-        }}
-        .stat-label {{
-            font-size: 12px;
-            text-transform: uppercase;
-        }}
-        .section {{
-            margin-bottom: 30px;
-        }}
-        .section-title {{
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
-        }}
-        .task {{
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }}
-        .task:hover {{
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }}
-        .task-overdue {{
-            border-left-color: #e74c3c;
-            background: #fff5f5;
-        }}
-        .task-today {{
-            border-left-color: #f39c12;
-            background: #fffbf0;
-        }}
-        .task-upcoming {{
-            border-left-color: #27ae60;
-            background: #f0fff4;
-        }}
-        .task-title {{
-            font-size: 16px;
-            font-weight: 500;
-            color: #2c3e50;
-            margin-bottom: 8px;
-        }}
-        .task-date {{
-            font-size: 13px;
-            color: #7f8c8d;
-            margin-bottom: 8px;
-        }}
-        .task-link {{
-            display: inline-block;
-            padding: 6px 12px;
-            background: #667eea;
-            color: white !important;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: 500;
-        }}
-        .task-link:hover {{
-            background: #5568d3;
-        }}
-        .footer {{
-            background: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            color: #7f8c8d;
-            font-size: 13px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📋 Suas Tarefas do Dia</h1>
-            <p>{datetime.now().strftime('%d de %B de %Y')}</p>
-        </div>
-        <div class="content">
-            <div class="stats">
-                <div class="stat"><span class="stat-number">{len(overdue)}</span><span class="stat-label">Vencidas</span></div>
-                <div class="stat"><span class="stat-number">{len(today_tasks)}</span><span class="stat-label">Hoje</span></div>
-                <div class="stat"><span class="stat-number">{len(upcoming)}</span><span class="stat-label">Próximos Dias</span></div>
+    print("🎨 Criando email HTML...")
+    
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f4f4f4; }
+            .container { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #1a73e8; border-bottom: 3px solid #1a73e8; padding-bottom: 10px; }
+            h2 { color: #1a73e8; margin-top: 30px; font-size: 1.2em; }
+            .task-item { background: #f8f9fa; padding: 15px; margin: 10px 0; border-left: 4px solid #1a73e8; border-radius: 5px; }
+            .task-item strong { color: #1a73e8; }
+            .overdue { border-left-color: #d32f2f; }
+            .today { border-left-color: #f57c00; }
+            .upcoming { border-left-color: #1976d2; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center; color: #666; font-size: 0.9em; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <h1>📅 Suas Tarefas do Todoist - """ + datetime.now().strftime("%d/%m/%Y") + """</h1>
+    """
+    
+    # Tarefas Vencidas
+    if categorized_tasks['overdue']:
+        html += "<h2>⚠️ Tarefas Vencidas (" + str(len(categorized_tasks['overdue'])) + ")</h2>"
+        for task in categorized_tasks['overdue']:
+            due_date = task['due']['date'] if task.get('due') else 'Sem data'
+            html += f"""
+            <div class='task-item overdue'>
+                <strong>❌ {task['content']}</strong><br>
+                <small>Venceu em: {due_date}</small>
             </div>
-"""
-
-    if overdue:
-        html += f'<div class="section"><div class="section-title">🔴 Tarefas Vencidas ({len(overdue)})</div>'
-        for task in overdue:
-            html += f'''<div class="task task-overdue">
-                <div class="task-title">{task["content"]}</div>
-                <div class="task-date">📅 Venceu em: {task["due_date"]}</div>
-                <a href="{task["url"]}" class="task-link" target="_blank">Abrir no Todoist →</a>
-            </div>'''
-        html += '</div>'
-
-    if today_tasks:
-        html += f'<div class="section"><div class="section-title">🟠 Para Hoje ({len(today_tasks)})</div>'
-        for task in today_tasks:
-            html += f'''<div class="task task-today">
-                <div class="task-title">{task["content"]}</div>
-                <div class="task-date">📅 Vence hoje: {task["due_date"]}</div>
-                <a href="{task["url"]}" class="task-link" target="_blank">Abrir no Todoist →</a>
-            </div>'''
-        html += '</div>'
-
-    if upcoming:
-        html += f'<div class="section"><div class="section-title">🟢 Próximos 3 Dias ({len(upcoming)})</div>'
-        for task in upcoming:
-            html += f'''<div class="task task-upcoming">
-                <div class="task-title">{task["content"]}</div>
-                <div class="task-date">📅 Vence em: {task["due_date"]}</div>
-                <a href="{task["url"]}" class="task-link" target="_blank">Abrir no Todoist →</a>
-            </div>'''
-        html += '</div>'
-
-    if not overdue and not today_tasks and not upcoming:
-        html += '<div style="text-align:center;padding:30px;color:#95a5a6;"><h2>🎉 Parabéns!</h2><p>Você não tem tarefas urgentes.</p></div>'
-
-    html += '''</div><div class="footer"><p>✉️ Email gerado automaticamente via Proton Mail - GitHub Actions</p></div></div></body></html>'''
+            """
+    
+    # Tarefas para Hoje
+    if categorized_tasks['today']:
+        html += "<h2>🎯 Tarefas para Hoje (" + str(len(categorized_tasks['today'])) + ")</h2>"
+        for task in categorized_tasks['today']:
+            html += f"""
+            <div class='task-item today'>
+                <strong>📌 {task['content']}</strong>
+            </div>
+            """
+    
+    # Próximas Tarefas
+    if categorized_tasks['upcoming']:
+        html += "<h2>📆 Próximos 3 Dias (" + str(len(categorized_tasks['upcoming'])) + ")</h2>"
+        for task in categorized_tasks['upcoming']:
+            due_date = task['due']['date'] if task.get('due') else 'Sem data'
+            html += f"""
+            <div class='task-item upcoming'>
+                <strong>✓ {task['content']}</strong><br>
+                <small>Vencimento: {due_date}</small>
+            </div>
+            """
+    
+    html += """
+            <div class='footer'>
+                <p><strong>📧 Email automático via GitHub Actions</strong></p>
+                <p>🤖 Powered by Rube</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
     return html
 
-def send_email_proton(html_body):
-    """Envia email via Proton Mail SMTP para múltiplos destinatários"""
+def send_email_proton(subject, html_content):
+    """Envia email via Proton Mail SMTP"""
+    print(f"📧 Enviando email para {len(recipients)} destinatários via Proton Mail...")
+    
     try:
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = '📋 Suas Tarefas do Dia - Todoist'
+        msg['Subject'] = subject
         msg['From'] = proton_email
         msg['To'] = ', '.join(recipients)
-
-        html_part = MIMEText(html_body, 'html')
-        msg.attach(html_part)
-
-        # Conectar ao Proton Mail SMTP
-        server = smtplib.SMTP(smtp_host, smtp_port)
-        server.starttls()
-        server.login(proton_email, proton_token)
-        server.sendmail(proton_email, recipients, msg.as_string())
-        server.quit()
-
-        print("✅ Email enviado com sucesso via Proton Mail!")
+        
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            print(f"🔐 Conectando a {smtp_host}:{smtp_port}...")
+            server.starttls()
+            print(f"🔑 Autenticando com {proton_email}...")
+            server.login(proton_email, proton_token)
+            print(f"✉️ Enviando email...")
+            server.sendmail(proton_email, recipients, msg.as_string())
+        
+        print(f"✅ Email enviado com sucesso! {datetime.now()}")
         return True
+    
     except Exception as e:
         print(f"❌ Erro ao enviar email: {e}")
         return False
 
+def main():
+    print("=" * 50)
+    print("🚀 Iniciando automação de envio de tarefas")
+    print("=" * 50)
+    
+    try:
+        # Buscar tarefas
+        tasks = get_todoist_tasks()
+        print(f"✅ {len(tasks)} tarefas encontradas")
+        
+        # Categorizar
+        categorized = categorize_tasks(tasks)
+        print(f"📊 Vencidas: {len(categorized['overdue'])}")
+        print(f"📊 Hoje: {len(categorized['today'])}")
+        print(f"📊 Próximos 3 dias: {len(categorized['upcoming'])}")
+        
+        # Criar HTML
+        html = create_html_email(categorized)
+        
+        # Enviar email
+        subject = f"📅 Suas Tarefas do Todoist - {datetime.now().strftime('%d/%m/%Y')}"
+        success = send_email_proton(subject, html)
+        
+        if success:
+            print("\n✅ Automação concluída com sucesso!")
+        else:
+            print("\n❌ Falha ao enviar email")
+            return False
+    
+    except Exception as e:
+        print(f"\n❌ Erro na automação: {e}")
+        return False
+    
+    return True
+
 if __name__ == '__main__':
-    print("🔍 Buscando tarefas do Todoist...")
-    tasks = get_todoist_tasks()
-
-    print("📌 Categorizando tarefas...")
-    overdue, today_tasks, upcoming = categorize_tasks(tasks)
-
-    print(f"  🔴 Vencidas: {len(overdue)}")
-    print(f"  🟠 Hoje: {len(today_tasks)}")
-    print(f"  🟢 Próximos 3 dias: {len(upcoming)}")
-
-    print("🎨 Criando email HTML...")
-    html = create_html_email(overdue, today_tasks, upcoming)
-
-    print(f"📧 Enviando email para {len(recipients)} destinatários via Proton Mail...")
-    if send_email_proton(html):
-        print("✅ Email enviado com sucesso!")
-    else:
-        print("❌ Erro ao enviar email")
+    main()
