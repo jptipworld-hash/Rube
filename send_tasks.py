@@ -5,11 +5,11 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
-# Configurações - PROTON MAIL
+# Configurações - GMAIL SMTP
 todoist_token = os.environ.get('TODOIST_TOKEN')
-proton_email = 'jp@jphub.com.br'
-proton_token = os.environ.get('PROTON_MAIL_TOKEN')
-smtp_host = 'smtp.protonmail.ch'
+gmail_email = 'jptipworld@gmail.com'
+gmail_password = os.environ.get('GMAIL_PASSWORD')
+smtp_host = 'smtp.gmail.com'
 smtp_port = 587
 recipients = ['jp@jphub.com.br', 'joaohomem@falconi.com']
 
@@ -120,14 +120,14 @@ def create_html_email(categorized_tasks):
     
     return html
 
-def send_email_proton(subject, html_content):
-    """Envia email via Proton Mail SMTP"""
-    print(f"📧 Enviando email para {len(recipients)} destinatários via Proton Mail...")
+def send_email_gmail(subject, html_content):
+    """Envia email via Gmail SMTP"""
+    print(f"📧 Enviando email para {len(recipients)} destinatários via Gmail...")
     
     try:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['From'] = proton_email
+        msg['From'] = gmail_email
         msg['To'] = ', '.join(recipients)
         
         msg.attach(MIMEText(html_content, 'html'))
@@ -135,10 +135,10 @@ def send_email_proton(subject, html_content):
         with smtplib.SMTP(smtp_host, smtp_port) as server:
             print(f"🔐 Conectando a {smtp_host}:{smtp_port}...")
             server.starttls()
-            print(f"🔑 Autenticando com {proton_email}...")
-            server.login(proton_email, proton_token)
+            print(f"🔑 Autenticando com {gmail_email}...")
+            server.login(gmail_email, gmail_password)
             print(f"✉️ Enviando email...")
-            server.sendmail(proton_email, recipients, msg.as_string())
+            server.sendmail(gmail_email, recipients, msg.as_string())
         
         print(f"✅ Email enviado com sucesso! {datetime.now()}")
         return True
@@ -168,7 +168,7 @@ def main():
         
         # Enviar email
         subject = f"📅 Suas Tarefas do Todoist - {datetime.now().strftime('%d/%m/%Y')}"
-        success = send_email_proton(subject, html)
+        success = send_email_gmail(subject, html)
         
         if success:
             print("\n✅ Automação concluída com sucesso!")
