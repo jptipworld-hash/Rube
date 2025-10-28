@@ -48,7 +48,7 @@ def categorize_tasks(tasks):
     }
 
 def create_html_email(categorized_tasks):
-    """Cria o HTML do email com layout melhorado"""
+    """Cria o HTML do email com layout melhorado e botão de abertura"""
     print("🎨 Criando email HTML...")
     
     today = datetime.now().date()
@@ -146,11 +146,17 @@ def create_html_email(categorized_tasks):
                 background: #f9f9f9;
                 border-left: 4px solid #667eea;
                 border-radius: 6px;
-                transition: all 0.2s;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 15px;
             }
             .task-item.overdue { border-left-color: #e74c3c; background: #fff5f5; }
             .task-item.today { border-left-color: #f39c12; background: #fffaf0; }
             .task-item.upcoming { border-left-color: #27ae60; background: #f5fdf9; }
+            .task-info {
+                flex: 1;
+            }
             .task-content {
                 font-size: 14px;
                 color: #333;
@@ -163,6 +169,24 @@ def create_html_email(categorized_tasks):
                 display: flex;
                 align-items: center;
                 gap: 5px;
+            }
+            .task-button {
+                white-space: nowrap;
+                padding: 8px 16px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+                display: inline-block;
+                transition: all 0.3s;
+                border: none;
+                cursor: pointer;
+            }
+            .task-button:hover {
+                opacity: 0.9;
+                transform: translateY(-2px);
             }
             .footer {
                 background: #f9f9f9;
@@ -211,10 +235,15 @@ def create_html_email(categorized_tasks):
         """
         for task in categorized_tasks['overdue']:
             due_date = task['due']['date'] if task.get('due') else 'Sem data'
+            task_id = task.get('id', '')
+            task_url = f"https://todoist.com/app/task/{task_id}"
             html += f"""
                     <div class='task-item overdue'>
-                        <div class='task-content'>{task['content']}</div>
-                        <div class='task-date'>📅 Vencimento: {due_date}</div>
+                        <div class='task-info'>
+                            <div class='task-content'>{task['content']}</div>
+                            <div class='task-date'>📅 Vencimento: {due_date}</div>
+                        </div>
+                        <a href='{task_url}' class='task-button'>Abrir →</a>
                     </div>
             """
         html += """
@@ -228,9 +257,14 @@ def create_html_email(categorized_tasks):
                     <div class='section-title today'>🎯 Tarefas para Hoje ({len(categorized_tasks['today'])})</div>
         """
         for task in categorized_tasks['today']:
+            task_id = task.get('id', '')
+            task_url = f"https://todoist.com/app/task/{task_id}"
             html += f"""
                     <div class='task-item today'>
-                        <div class='task-content'>{task['content']}</div>
+                        <div class='task-info'>
+                            <div class='task-content'>{task['content']}</div>
+                        </div>
+                        <a href='{task_url}' class='task-button'>Abrir →</a>
                     </div>
             """
         html += """
@@ -245,10 +279,15 @@ def create_html_email(categorized_tasks):
         """
         for task in categorized_tasks['upcoming']:
             due_date = task['due']['date'] if task.get('due') else 'Sem data'
+            task_id = task.get('id', '')
+            task_url = f"https://todoist.com/app/task/{task_id}"
             html += f"""
                     <div class='task-item upcoming'>
-                        <div class='task-content'>{task['content']}</div>
-                        <div class='task-date'>📅 Vencimento: {due_date}</div>
+                        <div class='task-info'>
+                            <div class='task-content'>{task['content']}</div>
+                            <div class='task-date'>📅 Vencimento: {due_date}</div>
+                        </div>
+                        <a href='{task_url}' class='task-button'>Abrir →</a>
                     </div>
             """
         html += """
